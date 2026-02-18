@@ -145,18 +145,27 @@ class AnalystService(AnalyzeDocumentUseCase):
 
         # 1. Récupérer le prompt système du spécialiste
         logger.debug("Récupération du prompt analyste")
-        prompt = self._prompt_repo.get_system_prompt(self.SPECIALIST_ID)
+        system_prompt = self._prompt_repo.get_system_prompt(self.SPECIALIST_ID)
+        user_message = f"Analyse le document: {doc_dict['name']}"
+
+        # LOG: Prompt envoyé
+        logger.with_extra(
+            system_prompt=system_prompt,
+            user_message=user_message
+        ).info("Envoi prompt à l'IA")
 
         # 2. Envoyer au LLM
-        logger.debug("Envoi au LLM pour analyse")
         raw_response = self._ai.send_message_with_pdf(
             pdf_path=doc_dict["path"],
-            user_message=f"Analyse le document: {doc_dict['name']}",
-            system_prompt=prompt
+            user_message=user_message,
+            system_prompt=system_prompt
         )
 
-        # 3. Parser la réponse JSON
-        logger.debug(f"Réponse LLM reçue ({len(raw_response)} chars)")
+        # LOG: Réponse reçue
+        logger.with_extra(
+            response=raw_response,
+            response_length=len(raw_response)
+        ).info("Réponse IA reçue")
         detected_modules = self._parse_detected_modules(raw_response)
 
         # 4. Filtrer les modules valides
