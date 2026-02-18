@@ -3,7 +3,6 @@ Point d'entrée de l'application FastAPI.
 
 Configure et lance l'API REST pour le pipeline Anki.
 """
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,14 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.adapters.primary.fastapi.routers import analyst_router
 from src.adapters.primary.fastapi.routers.restructurer_router import router as restructurer_router
+from src.infrastructure.logging.config import setup_logging, get_logger
 
 
-# Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Configuration du logging structuré
+setup_logging(log_dir="logs", json_format=False)
+logger = get_logger(__name__, "main")
 
 
 @asynccontextmanager
