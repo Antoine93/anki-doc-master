@@ -9,6 +9,8 @@ PRINCIPE: Le service orchestre, les adapters implémentent.
 - Communication IA via AIPort
 """
 import json
+import re
+import time
 import uuid
 from datetime import datetime
 
@@ -234,6 +236,52 @@ class RestructurerService(RestructureDocumentUseCase):
                 ).info("Module traité")
 
             except AIError as e:
+                error_str = str(e).lower()
+
+                # Vérifier si c'est une limite de tokens/rate limit
+                if self._is_rate_limit_error(error_str):
+                    logger.with_extra(module=module).warning(
+                        "Limite de tokens atteinte, tentative de reprise"
+                    )
+
+                    # Attendre et réessayer
+                    wait_time = self._handle_rate_limit()
+                    if wait_time > 0:
+                        logger.info(f"Attente de {wait_time}s avant reprise")
+                        time.sleep(wait_time)
+
+                        # Réessayer le module
+                        try:
+                            items = self._extract_module_content(
+                                document_path=doc_dict["path"],
+                                document_name=doc_dict["name"],
+                                module=module,
+                                system_prompt=system_prompt
+                            )
+
+                            for idx, item in enumerate(items, 1):
+                                item_id = f"{module.replace('_', '-')}-{idx}"
+                                self._storage.save_module_item(
+                                    document_id=document_id,
+                                    module=module,
+                                    item_id=item_id,
+                                    content=item
+                                )
+
+                            self._storage.update_module_status(
+                                document_id, module, "completed", items_count=len(items)
+                            )
+                            modules_processed.append(module)
+                            items_count[module] = len(items)
+
+                            logger.with_extra(module=module, items=len(items)).info(
+                                "Module traité après reprise"
+                            )
+                            continue
+
+                        except AIError as retry_error:
+                            logger.error(f"Échec après reprise: {retry_error}")
+
                 # Marquer le module comme échoué
                 self._storage.update_module_status(
                     document_id, module, "failed", error=str(e)
@@ -241,7 +289,7 @@ class RestructurerService(RestructureDocumentUseCase):
                 logger.with_extra(module=module, error=str(e)).error(
                     "Erreur IA sur module"
                 )
-                raise  # Interrompt pour permettre la reprise
+                raise  # Interrompt pour permettre la reprise manuelle
             except Exception as e:
                 # Marquer le module comme échoué
                 self._storage.update_module_status(
@@ -350,12 +398,22 @@ class RestructurerService(RestructureDocumentUseCase):
             user_message=user_message
         ).info("Envoi prompt à l'IA")
 
-        # Appeler le LLM
-        response = self._ai.send_message_with_pdf(
-            pdf_path=document_path,
-            user_message=user_message,
-            system_prompt=system_prompt
-        )
+        # Appeler le LLM - utiliser la session existante si active
+        if self._ai.is_session_active():
+            # Session active = PDF déjà chargé, on envoie juste le message
+            logger.debug("Utilisation session existante")
+            response = self._ai.send_message(
+                user_message=user_message,
+                system_prompt=system_prompt
+            )
+        else:
+            # Pas de session = démarrer avec le PDF
+            logger.debug("Démarrage nouvelle session avec PDF")
+            response = self._ai.send_message_with_pdf(
+                pdf_path=document_path,
+                user_message=user_message,
+                system_prompt=system_prompt
+            )
 
         # LOG: Réponse reçue
         logger.with_extra(
@@ -472,3 +530,81 @@ class RestructurerService(RestructureDocumentUseCase):
             raise DomainValidationError(
                 f"Le {field_name} ne peut pas être vide ou invalide"
             )
+
+    def _is_rate_limit_error(self, error_str: str) -> bool:
+        """
+        Détecte si l'erreur est liée à une limite de tokens/rate.
+
+        Args:
+            error_str: Message d'erreur en minuscules
+
+        Returns:
+            True si c'est une erreur de rate limit
+        """
+        rate_limit_keywords = [
+            "rate limit",
+            "rate_limit",
+            "token limit",
+            "tokens limit",
+            "quota",
+            "too many requests",
+            "429",
+            "limit exceeded",
+            "capacity"
+        ]
+        return any(keyword in error_str for keyword in rate_limit_keywords)
+
+    def _handle_rate_limit(self) -> int:
+        """
+        Gère une erreur de rate limit en vérifiant /usage.
+
+        Returns:
+            Temps d'attente en secondes (0 si impossible à déterminer)
+        """
+        try:
+            usage = self._ai.check_usage()
+
+            logger.with_extra(usage=usage).info("Usage tokens récupéré")
+
+            # Parser le temps de reset
+            reset_time = usage.get("reset_time")
+            if reset_time:
+                wait_seconds = self._parse_reset_time(reset_time)
+                if wait_seconds > 0:
+                    return wait_seconds + 10  # Marge de sécurité
+
+            # Si on ne peut pas déterminer, attendre 5 minutes par défaut
+            return 300
+
+        except Exception as e:
+            logger.warning(f"Impossible de vérifier /usage: {e}")
+            return 300  # 5 minutes par défaut
+
+    def _parse_reset_time(self, reset_time: str) -> int:
+        """
+        Parse une durée de reset en secondes.
+
+        Args:
+            reset_time: Format comme "2h30m", "45m", "1h"
+
+        Returns:
+            Durée en secondes
+        """
+        total_seconds = 0
+
+        # Extraire les heures
+        hours_match = re.search(r"(\d+)h", reset_time)
+        if hours_match:
+            total_seconds += int(hours_match.group(1)) * 3600
+
+        # Extraire les minutes
+        minutes_match = re.search(r"(\d+)m", reset_time)
+        if minutes_match:
+            total_seconds += int(minutes_match.group(1)) * 60
+
+        # Extraire les secondes
+        seconds_match = re.search(r"(\d+)s", reset_time)
+        if seconds_match:
+            total_seconds += int(seconds_match.group(1))
+
+        return total_seconds
