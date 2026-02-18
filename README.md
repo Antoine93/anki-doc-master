@@ -1,1 +1,0 @@
-# anki-doc-master

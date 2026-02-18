@@ -1,0 +1,3 @@
+"""
+Adapters primaires (interfaces utilisateur).
+"""
