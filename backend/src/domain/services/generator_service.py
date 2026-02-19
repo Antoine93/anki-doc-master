@@ -47,6 +47,8 @@ class GeneratorService(GenerateCardsUseCase):
 
     SPECIALIST_ID = "generator"
     VALID_CARD_TYPES = ["basic", "cloze"]
+    # Modules exclus par défaut (nécessitent traitement spécial des images)
+    EXCLUDED_MODULES_DEFAULT = ["images_list", "images_descriptions"]
 
     def __init__(
         self,
@@ -133,6 +135,7 @@ class GeneratorService(GenerateCardsUseCase):
 
         # Filtrer les modules demandés
         if modules:
+            # Modules explicitement demandés: inclure même les exclus par défaut
             selected_modules = [m for m in modules if m in available_modules]
             if not selected_modules:
                 raise DomainValidationError(
@@ -140,7 +143,16 @@ class GeneratorService(GenerateCardsUseCase):
                     f"Disponibles: {available_modules}"
                 )
         else:
-            selected_modules = available_modules
+            # Aucun module spécifié: exclure les modules par défaut (images)
+            selected_modules = [
+                m for m in available_modules
+                if m not in self.EXCLUDED_MODULES_DEFAULT
+            ]
+            excluded = [m for m in available_modules if m in self.EXCLUDED_MODULES_DEFAULT]
+            if excluded:
+                logger.with_extra(excluded_modules=excluded).info(
+                    "Modules exclus par défaut (images)"
+                )
 
         if not selected_modules:
             raise DomainValidationError("Aucun module à traiter")
