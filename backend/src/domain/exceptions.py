@@ -90,3 +90,13 @@ class OptimizationNotFoundError(DomainError):
 class OptimizationAlreadyExistsError(DomainError):
     """Optimisation de cartes déjà existante. HTTP 409."""
     pass
+
+
+class FormattingNotFoundError(DomainError):
+    """Formatage Anki introuvable. HTTP 404."""
+    pass
+
+
+class FormattingAlreadyExistsError(DomainError):
+    """Formatage Anki déjà existant. HTTP 409."""
+    pass
