@@ -65,3 +65,18 @@ class InvalidPdfError(DomainError):
 class PromptNotFoundError(DomainError):
     """Prompt de spécialiste introuvable. HTTP 404."""
     pass
+
+
+class GenerationNotFoundError(DomainError):
+    """Génération de cartes introuvable. HTTP 404."""
+    pass
+
+
+class GenerationAlreadyExistsError(DomainError):
+    """Génération de cartes déjà existante. HTTP 409."""
+    pass
+
+
+class CardNotFoundError(DomainError):
+    """Carte introuvable. HTTP 404."""
+    pass
