@@ -13,8 +13,10 @@ from functools import lru_cache
 
 from src.ports.primary.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.ports.primary.restructure_document_use_case import RestructureDocumentUseCase
+from src.ports.primary.generate_cards_use_case import GenerateCardsUseCase
 from src.domain.services.analyst_service import AnalystService
 from src.domain.services.restructurer_service import RestructurerService
+from src.domain.services.generator_service import GeneratorService
 from src.adapters.secondary.repositories.filesystem_document_repository import (
     FileSystemDocumentRepository
 )
@@ -23,6 +25,9 @@ from src.adapters.secondary.storage.json_file_analysis_storage import (
 )
 from src.adapters.secondary.storage.json_restructured_storage import (
     JsonRestructuredStorage
+)
+from src.adapters.secondary.storage.json_cards_storage import (
+    JsonCardsStorage
 )
 from src.adapters.secondary.prompts.filesystem_prompt_repository import (
     FileSystemPromptRepository
@@ -75,6 +80,12 @@ def get_restructured_storage() -> JsonRestructuredStorage:
 
 
 @lru_cache()
+def get_cards_storage() -> JsonCardsStorage:
+    """Factory pour le storage des cartes générées."""
+    return JsonCardsStorage(outputs_path=get_outputs_path())
+
+
+@lru_cache()
 def get_prompt_repository() -> FileSystemPromptRepository:
     """Factory pour le repository de prompts."""
     return FileSystemPromptRepository(prompts_path=get_prompts_path())
@@ -118,4 +129,14 @@ def get_restructurer_service() -> RestructureDocumentUseCase:
         prompt_repository=get_prompt_repository(),
         ai=get_ai(),
         analysis_storage=get_analysis_storage()
+    )
+
+
+def get_generator_service() -> GenerateCardsUseCase:
+    """Factory pour le service Générateur de cartes."""
+    return GeneratorService(
+        restructured_storage=get_restructured_storage(),
+        cards_storage=get_cards_storage(),
+        prompt_repository=get_prompt_repository(),
+        ai=get_ai()
     )
