@@ -207,6 +207,20 @@ class ClaudeSessionAdapter(AIPort):
         """Retourne l'ID de session actuel."""
         return self._session_id
 
+    def set_session_id(self, session_id: str, pdf_path: str | None = None) -> None:
+        """
+        Injecte un session_id existant (reprise depuis tracking).
+
+        Args:
+            session_id: ID de session à réutiliser
+            pdf_path: Chemin du PDF associé
+        """
+        self._session_id = session_id
+        self._current_pdf = pdf_path
+        logger.with_extra(session_id=session_id[:12]).info(
+            "Session ID injecté depuis tracking"
+        )
+
     def get_current_pdf(self) -> str | None:
         """Retourne le PDF actuel."""
         return self._current_pdf

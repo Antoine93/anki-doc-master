@@ -314,8 +314,29 @@ class JsonRestructuredStorage(RestructuredStoragePort):
             "started_at": now,
             "updated_at": now,
             "status": "pending",
+            "session_id": None,  # ID session Claude pour reprise
             "modules": {}
         }
+
+    def update_session_id(self, document_id: str, session_id: str) -> dict:
+        """
+        Met à jour le session_id dans le tracking.
+
+        Args:
+            document_id: Identifiant du document
+            session_id: ID de session Claude
+
+        Returns:
+            Tracking mis à jour
+        """
+        tracking = self.get_tracking(document_id)
+        if tracking is None:
+            tracking = self._create_empty_tracking(document_id)
+
+        tracking["session_id"] = session_id
+        tracking["updated_at"] = datetime.now().isoformat()
+
+        return self.save_tracking(document_id, tracking)
 
     def _update_global_status(self, tracking: dict) -> None:
         """Met à jour le statut global basé sur les statuts des modules."""

@@ -190,6 +190,14 @@ class RestructurerService(RestructureDocumentUseCase):
             tracking = self._init_tracking(document_id, analysis_id, selected_modules)
             self._storage.save_tracking(document_id, tracking)
 
+        # Restaurer le session_id depuis le tracking si disponible
+        saved_session_id = tracking.get("session_id") if tracking else None
+        if saved_session_id and hasattr(self._ai, 'set_session_id'):
+            self._ai.set_session_id(saved_session_id, doc_dict["path"])
+            logger.with_extra(session_id=saved_session_id[:12]).info(
+                "Session Claude restaurée depuis tracking"
+            )
+
         # Récupérer le prompt système
         logger.debug("Récupération du prompt système")
         system_prompt = self._prompt_repo.get_system_prompt(self.SPECIALIST_ID)
@@ -229,6 +237,16 @@ class RestructurerService(RestructureDocumentUseCase):
 
                 modules_processed.append(module)
                 items_count[module] = len(items)
+
+                # Sauvegarder le session_id après le premier module
+                if hasattr(self._ai, 'get_session_id'):
+                    current_session_id = self._ai.get_session_id()
+                    if current_session_id and current_session_id != saved_session_id:
+                        self._storage.update_session_id(document_id, current_session_id)
+                        saved_session_id = current_session_id
+                        logger.with_extra(session_id=current_session_id[:12]).info(
+                            "Session ID sauvegardé dans tracking"
+                        )
 
                 logger.with_extra(
                     module=module,

@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.adapters.primary.fastapi.routers import analyst_router
 from src.adapters.primary.fastapi.routers.restructurer_router import router as restructurer_router
+from src.adapters.primary.fastapi.routers.generator_router import router as generator_router
 from src.infrastructure.logging.config import setup_logging, get_logger
 
 
@@ -40,7 +41,7 @@ Le pipeline est composé de plusieurs étapes :
 
 1. **Analyste** : Évalue le contenu d'un document selon les modules disponibles
 2. **Restructureur** : Restructure le document selon les modules recommandés
-3. **Générateur** : Crée les cartes selon le format demandé
+3. **Générateur** : Crée les cartes Anki (basic ou cloze) à partir du contenu restructuré
 4. **SuperMemo Expert** : Applique les règles SuperMemo
 5. **Anki Syntax Expert** : Produit les fichiers Anki
 
@@ -69,6 +70,7 @@ app.add_middleware(
 # Enregistrement des routers
 app.include_router(analyst_router)
 app.include_router(restructurer_router)
+app.include_router(generator_router)
 
 
 @app.get("/", tags=["Health"])

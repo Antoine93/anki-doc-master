@@ -207,3 +207,17 @@ class RestructuredStoragePort(ABC):
             Dict avec le tracking mis à jour
         """
         pass
+
+    @abstractmethod
+    def update_session_id(self, document_id: str, session_id: str) -> dict:
+        """
+        Met à jour le session_id Claude dans le tracking.
+
+        Args:
+            document_id: Identifiant du document
+            session_id: ID de session Claude
+
+        Returns:
+            Dict avec le tracking mis à jour
+        """
+        pass
