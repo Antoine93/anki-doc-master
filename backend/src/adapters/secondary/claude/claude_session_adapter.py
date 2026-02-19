@@ -74,6 +74,7 @@ class ClaudeSessionAdapter(AIPort):
                 cmd,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=self._timeout,
                 cwd=self._working_dir
             )
