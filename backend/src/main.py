@@ -12,6 +12,7 @@ from src.adapters.primary.fastapi.routers import analyst_router
 from src.adapters.primary.fastapi.routers.restructurer_router import router as restructurer_router
 from src.adapters.primary.fastapi.routers.generator_router import router as generator_router
 from src.adapters.primary.fastapi.routers.atomizer_router import router as atomizer_router
+from src.adapters.primary.fastapi.routers.formatter_router import router as formatter_router
 from src.infrastructure.logging.config import setup_logging, get_logger
 
 
@@ -44,7 +45,7 @@ Le pipeline est composé de plusieurs étapes :
 2. **Restructureur** : Restructure le document selon les modules recommandés
 3. **Générateur** : Crée les cartes Anki (basic ou cloze) à partir du contenu restructuré
 4. **Atomizer** : Optimise les cartes selon les règles SuperMemo (atomisation, simplification)
-5. **Anki Syntax Expert** : Produit les fichiers Anki
+5. **Formatter** : Exporte les cartes en fichiers .txt importables dans Anki
 
 ## Modules disponibles
 
@@ -73,6 +74,7 @@ app.include_router(analyst_router)
 app.include_router(restructurer_router)
 app.include_router(generator_router)
 app.include_router(atomizer_router)
+app.include_router(formatter_router)
 
 
 @app.get("/", tags=["Health"])
