@@ -28,7 +28,7 @@ from src.adapters.secondary.prompts.filesystem_prompt_repository import (
     FileSystemPromptRepository
 )
 from src.adapters.secondary.claude.claude_cli_adapter import ClaudeCliAdapter
-from src.adapters.secondary.claude.claude_interactive_adapter import ClaudeInteractiveAdapter
+from src.adapters.secondary.claude.claude_session_adapter import ClaudeSessionAdapter
 
 
 def get_project_root() -> Path:
@@ -83,14 +83,14 @@ def get_prompt_repository() -> FileSystemPromptRepository:
 # ==================== IA ====================
 
 @lru_cache()
-def get_ai() -> ClaudeInteractiveAdapter:
+def get_ai() -> ClaudeSessionAdapter:
     """
     Factory pour la communication IA.
 
-    Retourne un singleton d'adapter interactif.
-    La session est partagée entre l'analyst et le restructurer.
+    Retourne un singleton avec session persistante.
+    Le session_id est capturé au premier appel et réutilisé.
     """
-    return ClaudeInteractiveAdapter(timeout=300, working_dir=str(get_project_root()))
+    return ClaudeSessionAdapter(timeout=300, working_dir=str(get_project_root()))
 
 
 def get_ai_legacy() -> ClaudeCliAdapter:
