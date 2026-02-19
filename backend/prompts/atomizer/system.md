@@ -38,11 +38,6 @@ Réduire les phrases complexes.
 - **NE JAMAIS** modifier le contenu entre délimiteurs
 - Seule action autorisée : subdiviser une équation multi-concepts
 
-### Syntaxe Cloze
-- **NE PAS** modifier `{{c1::` ni `}}`
-- **NE PAS** renuméroter les indices
-- **NE PAS** convertir cloze → basique
-
 ## Critères "carte déjà optimale"
 
 Ne pas transformer une carte si :
