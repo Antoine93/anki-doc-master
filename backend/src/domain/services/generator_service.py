@@ -454,14 +454,14 @@ class GeneratorService(GenerateCardsUseCase):
         # Combiner: base prompt + module prompt + contenu
         user_message = f"{base_prompt}\n\n---\n\n{module_prompt}\n\n## Contenu à traiter\n\n```json\n{content_json}\n```"
 
-        # LOG: Prompt envoyé
+        # LOG: Prompt envoyé (system.md en system_prompt + base + module en user_message)
         logger.with_extra(
             module=module,
             card_type=card_type,
             content_items=len(module_content),
             base_prompt_length=len(base_prompt),
             module_prompt_length=len(module_prompt)
-        ).info(f"Envoi prompt à l'IA ({card_type}.md + {module}.md)")
+        ).info(f"Envoi prompt à l'IA (system.md + {card_type}.md + {module}.md)")
 
         # Appeler le LLM
         response = self._ai.send_message(
