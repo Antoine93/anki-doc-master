@@ -58,10 +58,25 @@ class SimpleFormatter(logging.Formatter):
         correlation_id = get_correlation_id()
         cid_short = correlation_id[:8] if correlation_id else "--------"
 
-        return (
+        base = (
             f"[{record.levelname:7}] {cid_short} | {layer:10} | "
             f"{record.name}:{record.funcName}:{record.lineno} - {record.getMessage()}"
         )
+
+        # Ajouter les extras s'ils existent (prompts, réponses, etc.)
+        if hasattr(record, "extra_data") and record.extra_data:
+            extras = record.extra_data
+            extra_lines = []
+            for key, value in extras.items():
+                # Tronquer les valeurs très longues pour la console
+                str_value = str(value)
+                if len(str_value) > 500:
+                    str_value = str_value[:500] + "... [tronqué]"
+                extra_lines.append(f"    {key}: {str_value}")
+            if extra_lines:
+                base += "\n" + "\n".join(extra_lines)
+
+        return base
 
 
 def setup_logging(

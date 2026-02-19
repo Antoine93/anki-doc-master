@@ -3,6 +3,10 @@ Port secondaire pour la communication IA.
 
 Interface TECHNIQUE pure pour communiquer avec un LLM.
 Aucune logique métier, aucun prompt spécifique.
+
+Supporte deux modes:
+- One-shot: Chaque appel est indépendant (mode legacy)
+- Session: Conversation persistante avec contexte conservé
 """
 from abc import ABC, abstractmethod
 
@@ -14,8 +18,9 @@ class AIPort(ABC):
     RESPONSABILITÉ: Envoyer des messages, recevoir des réponses.
     Aucun prompt métier ici - c'est un "tuyau" de communication.
 
-    Les prompts et parsing sont dans les adapters métier
-    (ex: ClaudeAnalystAdapter) qui UTILISENT ce port.
+    MODES:
+    - One-shot: send_message() / send_message_with_pdf() isolés
+    - Session: start_session() puis send_message() multiples
     """
 
     @abstractmethod
@@ -65,3 +70,38 @@ class AIPort(ABC):
             AIError: Si la communication échoue
         """
         pass
+
+    # --- Méthodes de session (optionnelles, avec implémentations par défaut) ---
+
+    def start_session(self, pdf_path: str | None = None) -> None:
+        """
+        Démarre une session interactive persistante.
+
+        Args:
+            pdf_path: PDF à charger dans la session (optionnel)
+
+        Note: Implémentation par défaut = no-op (mode one-shot)
+        """
+        pass
+
+    def is_session_active(self) -> bool:
+        """
+        Vérifie si une session est active.
+
+        Returns:
+            True si session active, False sinon
+        """
+        return False
+
+    def close_session(self) -> None:
+        """Ferme la session active."""
+        pass
+
+    def check_usage(self) -> dict:
+        """
+        Vérifie l'utilisation des tokens.
+
+        Returns:
+            Dict avec tokens_used, tokens_limit, reset_time
+        """
+        return {"tokens_used": None, "tokens_limit": None, "reset_time": None}
