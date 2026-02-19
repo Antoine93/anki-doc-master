@@ -31,7 +31,8 @@ class GenerateCardsUseCase(ABC):
         Args:
             restructuration_id: Identifiant de la restructuration source
             card_type: Type de carte ("basic" ou "cloze")
-            modules: Liste des modules à traiter (None = tous)
+            modules: Liste des modules à traiter. Si None, tous les modules
+                     sauf images_list et images_descriptions (exclus par défaut)
             force: Forcer la re-génération si elle existe
 
         Returns:

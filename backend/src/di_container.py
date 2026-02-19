@@ -14,9 +14,13 @@ from functools import lru_cache
 from src.ports.primary.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.ports.primary.restructure_document_use_case import RestructureDocumentUseCase
 from src.ports.primary.generate_cards_use_case import GenerateCardsUseCase
+from src.ports.primary.optimize_cards_use_case import OptimizeCardsUseCase
+from src.ports.primary.format_cards_use_case import FormatCardsUseCase
 from src.domain.services.analyst_service import AnalystService
 from src.domain.services.restructurer_service import RestructurerService
 from src.domain.services.generator_service import GeneratorService
+from src.domain.services.atomizer_service import AtomizerService
+from src.domain.services.formatter_service import FormatterService
 from src.adapters.secondary.repositories.filesystem_document_repository import (
     FileSystemDocumentRepository
 )
@@ -28,6 +32,12 @@ from src.adapters.secondary.storage.json_restructured_storage import (
 )
 from src.adapters.secondary.storage.json_cards_storage import (
     JsonCardsStorage
+)
+from src.adapters.secondary.storage.json_optimized_cards_storage import (
+    JsonOptimizedCardsStorage
+)
+from src.adapters.secondary.storage.anki_formatted_storage import (
+    AnkiFormattedStorage
 )
 from src.adapters.secondary.prompts.filesystem_prompt_repository import (
     FileSystemPromptRepository
@@ -86,6 +96,18 @@ def get_cards_storage() -> JsonCardsStorage:
 
 
 @lru_cache()
+def get_optimized_cards_storage() -> JsonOptimizedCardsStorage:
+    """Factory pour le storage des cartes optimisées."""
+    return JsonOptimizedCardsStorage(outputs_path=get_outputs_path())
+
+
+@lru_cache()
+def get_formatted_storage() -> AnkiFormattedStorage:
+    """Factory pour le storage des fichiers Anki formatés."""
+    return AnkiFormattedStorage(outputs_path=get_outputs_path())
+
+
+@lru_cache()
 def get_prompt_repository() -> FileSystemPromptRepository:
     """Factory pour le repository de prompts."""
     return FileSystemPromptRepository(prompts_path=get_prompts_path())
@@ -137,6 +159,26 @@ def get_generator_service() -> GenerateCardsUseCase:
     return GeneratorService(
         restructured_storage=get_restructured_storage(),
         cards_storage=get_cards_storage(),
+        prompt_repository=get_prompt_repository(),
+        ai=get_ai()
+    )
+
+
+def get_atomizer_service() -> OptimizeCardsUseCase:
+    """Factory pour le service Atomizer (Optimiseur SuperMemo)."""
+    return AtomizerService(
+        cards_storage=get_cards_storage(),
+        optimized_storage=get_optimized_cards_storage(),
+        prompt_repository=get_prompt_repository(),
+        ai=get_ai()
+    )
+
+
+def get_formatter_service() -> FormatCardsUseCase:
+    """Factory pour le service Formatter (Export Anki)."""
+    return FormatterService(
+        optimized_storage=get_optimized_cards_storage(),
+        formatted_storage=get_formatted_storage(),
         prompt_repository=get_prompt_repository(),
         ai=get_ai()
     )

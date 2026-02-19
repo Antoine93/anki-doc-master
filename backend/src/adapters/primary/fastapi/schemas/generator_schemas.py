@@ -20,7 +20,7 @@ class GenerateCardsRequest(BaseModel):
     )
     modules: list[str] | None = Field(
         default=None,
-        description="Modules à traiter (None = tous)"
+        description="Modules à traiter. Si None, tous sauf images_list et images_descriptions"
     )
     force: bool = Field(
         default=False,
