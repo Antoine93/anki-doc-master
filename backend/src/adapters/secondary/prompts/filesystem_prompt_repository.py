@@ -88,7 +88,15 @@ class FileSystemPromptRepository(PromptRepositoryPort):
         return content
 
     def get_module_prompt(self, specialist_id: str, module_id: str) -> str:
-        """Récupère le prompt d'un module (avec cache)."""
+        """
+        Récupère le prompt d'un module (avec cache).
+
+        Supporte deux structures:
+        - Standard: specialist/modules/module.md
+        - Directe: specialist/module.md (pour le generator avec card_type)
+
+        Le specialist_id peut contenir un sous-chemin (ex: "generator/basic").
+        """
         # Vérifier le cache
         if specialist_id in self._module_cache:
             if module_id in self._module_cache[specialist_id]:
@@ -99,8 +107,15 @@ class FileSystemPromptRepository(PromptRepositoryPort):
                 return self._module_cache[specialist_id][module_id]
 
         # Charger depuis le fichier
-        modules_dir = self._prompts_path / specialist_id / self.MODULES_DIR
+        specialist_path = self._prompts_path / specialist_id
+
+        # Essayer d'abord avec le sous-dossier modules/
+        modules_dir = specialist_path / self.MODULES_DIR
         prompt_file = self._find_file(modules_dir, module_id)
+
+        # Si pas trouvé, essayer directement dans le dossier specialist
+        if prompt_file is None:
+            prompt_file = self._find_file(specialist_path, module_id)
 
         if prompt_file is None:
             logger.with_extra(
@@ -109,7 +124,7 @@ class FileSystemPromptRepository(PromptRepositoryPort):
             ).warning("Prompt module introuvable")
             raise PromptNotFoundError(
                 f"Prompt module '{module_id}' pour '{specialist_id}' introuvable. "
-                f"Attendu: {modules_dir / f'{module_id}.md'}"
+                f"Attendu: {modules_dir / f'{module_id}.md'} ou {specialist_path / f'{module_id}.md'}"
             )
 
         content = prompt_file.read_text(encoding="utf-8")
@@ -141,18 +156,33 @@ class FileSystemPromptRepository(PromptRepositoryPort):
         return sorted(specialists)
 
     def list_modules(self, specialist_id: str) -> list[str]:
-        """Liste tous les modules d'un spécialiste."""
-        modules_dir = self._prompts_path / specialist_id / self.MODULES_DIR
+        """
+        Liste tous les modules d'un spécialiste.
 
-        if not modules_dir.exists():
-            return []
+        Supporte deux structures:
+        - Standard: specialist/modules/*.md
+        - Directe: specialist/*.md (pour le generator avec card_type)
+        """
+        specialist_path = self._prompts_path / specialist_id
+        modules_dir = specialist_path / self.MODULES_DIR
 
         modules = []
-        for ext in self.SUPPORTED_EXTENSIONS:
-            for file in modules_dir.glob(f"*{ext}"):
-                module_id = file.stem
-                if module_id not in modules:
-                    modules.append(module_id)
+
+        # Chercher dans modules/ si existe
+        if modules_dir.exists():
+            for ext in self.SUPPORTED_EXTENSIONS:
+                for file in modules_dir.glob(f"*{ext}"):
+                    module_id = file.stem
+                    if module_id not in modules:
+                        modules.append(module_id)
+
+        # Chercher aussi directement (excluant system.md)
+        if specialist_path.exists():
+            for ext in self.SUPPORTED_EXTENSIONS:
+                for file in specialist_path.glob(f"*{ext}"):
+                    module_id = file.stem
+                    if module_id not in modules and module_id != "system":
+                        modules.append(module_id)
 
         logger.with_extra(
             specialist=specialist_id,
