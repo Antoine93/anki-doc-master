@@ -165,13 +165,19 @@ class ClaudeSessionAdapter(AIPort):
         """
         prompt = f"{system_prompt}\n\n{user_message}"
 
-        # Normaliser le chemin
-        pdf_normalized = str(Path(pdf_path).resolve())
-        current_normalized = str(Path(self._current_pdf).resolve()) if self._current_pdf else None
+        # Normaliser le chemin de manière robuste (gère Windows/Unix)
+        pdf_normalized = str(Path(pdf_path).resolve()).replace("\\", "/").lower()
+        current_normalized = (
+            str(Path(self._current_pdf).resolve()).replace("\\", "/").lower()
+            if self._current_pdf else None
+        )
 
         # Nouveau PDF = nouvelle session
         if pdf_normalized != current_normalized:
-            logger.info(f"Nouveau PDF détecté, démarrage nouvelle session")
+            logger.with_extra(
+                new_pdf=pdf_normalized[-50:] if pdf_normalized else None,
+                current_pdf=current_normalized[-50:] if current_normalized else None
+            ).info("Nouveau PDF détecté, démarrage nouvelle session")
             self._session_id = None
             self._current_pdf = pdf_path
 
