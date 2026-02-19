@@ -80,3 +80,13 @@ class GenerationAlreadyExistsError(DomainError):
 class CardNotFoundError(DomainError):
     """Carte introuvable. HTTP 404."""
     pass
+
+
+class OptimizationNotFoundError(DomainError):
+    """Optimisation de cartes introuvable. HTTP 404."""
+    pass
+
+
+class OptimizationAlreadyExistsError(DomainError):
+    """Optimisation de cartes déjà existante. HTTP 409."""
+    pass
